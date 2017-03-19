@@ -9,7 +9,7 @@ import org.springframework.data.elasticsearch.core.geo.GeoPoint;
  * ES 微博数据实体
  */
 @Document(indexName = "weibo", type = "weibo")
-public class EsWeiBoData extends BaseEntity {
+public class WeiBoData extends BaseEntity {
     private static final long serialVersionUID = -6729948021187345071L;
     /**
      * POI序号
@@ -43,21 +43,19 @@ public class EsWeiBoData extends BaseEntity {
      */
     private Integer photoNum;
 
-    public EsWeiBoData() {
+    public WeiBoData() {
     }
 
-    public EsWeiBoData(String id, String title, String address, GeoPoint locations, String city,
-                       String categoryName, Integer checkinNum, Integer photoNum) {
+    public WeiBoData(String id, String title, String address, GeoPoint location, String city, String categoryName, Integer checkinNum, Integer photoNum) {
         this.id = id;
         this.title = title;
         this.address = address;
-        this.location = locations;
+        this.location = location;
         this.city = city;
         this.categoryName = categoryName;
         this.checkinNum = checkinNum;
         this.photoNum = photoNum;
     }
-
 
     public String getId() {
         return id;
