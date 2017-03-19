@@ -11,4 +11,5 @@ import org.springframework.data.repository.CrudRepository;
  * Created by WPJ587 on 2017/3/19.
  */
 public interface WeiBoDataRepository extends CrudRepository<WeiBoData, String> {
+
 }

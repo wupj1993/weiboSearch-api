@@ -5,56 +5,54 @@
 package com.boot.swagger.controller;
 
 import com.boot.swagger.dto.BaseResult;
-import com.boot.swagger.entity.WeiBoData;
 import com.boot.swagger.service.WeiBoDataService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author：WPJ587 2017/3/17 22:10.
  **/
 @RestController
 @RequestMapping("/weibo")
-
-@Api(basePath = "/weibo", value = "WeiBoData", description = "微博签到信息", produces = MediaType.APPLICATION_JSON_VALUE)
+@ApiResponses(value = {
+        @ApiResponse(code = 200, message = "Success", response = BaseResult.class),
+        @ApiResponse(code = 401, message = "Unauthorized"),
+        @ApiResponse(code = 403, message = "Forbidden"),
+        @ApiResponse(code = 404, message = "Not Found"),
+        @ApiResponse(code = 500, message = "Failure")})
+@Api(basePath = "/weibo", value = "EsWeiBoData", description = "微博签到信息", produces = MediaType.APPLICATION_JSON_VALUE)
 public class WeiBoMsgController extends BaseController {
     @Autowired
     private WeiBoDataService esWeiBoDataService;
+
     @ResponseBody
-    @GetMapping("/city/{city}")
-    @ApiOperation(produces = MediaType.APPLICATION_JSON_VALUE,value = "获取敲到信息", notes = "根据城市查询签到信息", httpMethod = "GET", response = BaseResult.class)
+    @PostMapping("/citys")
+    @ApiOperation(produces = MediaType.APPLICATION_JSON_VALUE, value = "获取签到信息", notes = "根据城市查询签到信息", httpMethod = "POST", response = BaseResult.class)
     public BaseResult listWeiBoDataByCity(@ApiParam(required = true, name = "city", value = "城市名字")
-                                          @PathVariable(name = "city",required = true)String city) {
-        //TODO 查询
-        WeiBoData esWeiBoData;
-        List<WeiBoData> esWeiBoDataList = new ArrayList<>();
-        for (int i = 0; i <10 ; i++) {
-            esWeiBoData = new WeiBoData();
-            esWeiBoData.setId(""+i);
-            esWeiBoData.setPhotoNum(i);
-            esWeiBoData.setAddress("福建");
-            esWeiBoData.setCategoryName("师范大学");
-            esWeiBoData.setLocation(new GeoPoint(10.222,20.433));
-            esWeiBoData.setCheckinNum(i+5);
-            esWeiBoData.setTitle("我在这里签到");
-            esWeiBoDataList.add(esWeiBoData);
-        }
-        return buildSuccessResultInfo(esWeiBoDataList);
+                                          @RequestParam(name = "city", required = true) String city,
+                                          @ApiParam(required = false, name = "size", value = "每页大小", defaultValue = "20")
+                                          @RequestParam(name = "size", required = false, defaultValue = "20") Integer size,
+                                          @ApiParam(required = false, name = "page", value = "当前页数", defaultValue = "1")
+                                          @RequestParam(name = "page", required = false, defaultValue = "1") Integer page) {
+
+        return buildSuccessResultInfo(esWeiBoDataService.findByCity(city, new PageRequest(page, size)));
 
     }
 
     @ResponseBody
     @GetMapping("/id/{id}")
-    @ApiOperation(produces = MediaType.APPLICATION_JSON_VALUE, value = "获取敲到信息", notes = "根据数据id查询签到信息", httpMethod = "GET", response = BaseResult.class)
+    @ApiOperation(produces = MediaType.APPLICATION_JSON_VALUE, value = "获取签到信息", notes = "根据数据id查询签到信息", httpMethod = "GET", response = BaseResult.class)
     public BaseResult getWeiBoDataById(@ApiParam(required = true, name = "id", value = "数据id号")
                                        @PathVariable(name = "id", required = true) String id) {
-
         return buildSuccessResultInfo(esWeiBoDataService.selectById(id));
+    }
+
+    @ResponseBody
+    public BaseResult getWeiboDataByPage(Pageable pageable) {
+        return null;
     }
 }

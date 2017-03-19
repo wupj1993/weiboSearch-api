@@ -122,4 +122,17 @@ public class WeiBoData extends BaseEntity {
         this.photoNum = photoNum;
     }
 
+    @Override
+    public String toString() {
+        return "WeiBoData{" +
+                "id='" + id + '\'' +
+                ", title='" + title + '\'' +
+                ", address='" + address + '\'' +
+                ", location=" + location +
+                ", city='" + city + '\'' +
+                ", categoryName='" + categoryName + '\'' +
+                ", checkinNum=" + checkinNum +
+                ", photoNum=" + photoNum +
+                '}';
+    }
 }
