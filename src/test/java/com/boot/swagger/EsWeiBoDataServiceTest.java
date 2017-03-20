@@ -4,9 +4,20 @@
 
 package com.boot.swagger;
 
+import com.boot.swagger.constant.ElasticSearchConstant;
 import com.boot.swagger.entity.WeiBoData;
 import com.boot.swagger.service.WeiBoDataService;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.geo.GeoDistance;
+import org.elasticsearch.common.unit.DistanceUnit;
+import org.elasticsearch.index.query.GeoDistanceRangeQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.sort.GeoDistanceSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +31,9 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilde
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * @author：WPJ587 2017/3/19 15:28.
@@ -33,6 +46,7 @@ public class EsWeiBoDataServiceTest {
     WeiBoDataService esWeiBoDataService;
     @Autowired
     ElasticsearchTemplate elasticsearchTemplate;
+
     @Test
     public void select() {
 //        WeiBoData esWeiBoData = esWeiBoDataService.selectById("B2094654D164A5FC4693");
@@ -61,7 +75,60 @@ public class EsWeiBoDataServiceTest {
         }
     }
 
-    public void demo(String index, String type, String app, Pageable page) {
+    @Test
+    public void filter() {
+        Pageable page = new PageRequest(1, 20);
+        GeoDistanceRangeQueryBuilder geoDistanceRangeQueryBuilder = new GeoDistanceRangeQueryBuilder("location");
+        geoDistanceRangeQueryBuilder.queryName("location");
+        //geoDistanceRangeQueryBuilder.lt(new GeoPoint(39.91291,116.30024)).gt(new GeoPoint(31.093493731,121.43676335));
+        SearchQuery query = new NativeSearchQueryBuilder()
+                .withQuery(geoDistanceRangeQueryBuilder)
+                .withIndices(ElasticSearchConstant.WEI_BO_INDEX)
+                .withTypes(ElasticSearchConstant.WEI_BO_TYPE)
+                .withPageable(page)
+                .build();
+        Page<WeiBoData> result = elasticsearchTemplate.queryForPage(query, WeiBoData.class);
+        for (WeiBoData weiBoData : result) {
+            System.out.println(weiBoData.toString());
+        }
 
     }
+
+    /**
+     * 附近的人
+     */
+    @Test
+    public void people() {
+        Double lat = 31.093493731;
+        Double lon = 121.43676335;
+        SearchRequestBuilder srb = elasticsearchTemplate.getClient().prepareSearch(ElasticSearchConstant.WEI_BO_INDEX).setTypes(ElasticSearchConstant.WEI_BO_TYPE);
+        srb.setFrom(0).setSize(1000);//1000人
+        GeoDistanceRangeQueryBuilder geoDistanceRangeQueryBuilder = new GeoDistanceRangeQueryBuilder("location");
+        geoDistanceRangeQueryBuilder.point(lat, lon)
+                .from("1m").to("1km").optimizeBbox("memory").geoDistance(GeoDistance.ARC);
+        srb.setPostFilter(geoDistanceRangeQueryBuilder);
+        // 获取距离多少公里 这个才是获取点与点之间的距离的
+        GeoDistanceSortBuilder sort = SortBuilders.geoDistanceSort("location");
+        sort.unit(DistanceUnit.METERS);
+        sort.order(SortOrder.ASC);
+        sort.point(lat, lon);
+        srb.addSort(sort);
+        SearchResponse searchResponse = srb.execute().actionGet();
+        SearchHits hits = searchResponse.getHits();
+        SearchHit[] searchHists = hits.getHits();
+        Float usetime = searchResponse.getTookInMillis() / 1000f;
+        System.out.println("附近的人(" + hits.getTotalHits() + "个)，耗时(" + usetime + "秒)：");
+        for (SearchHit hit : searchHists) {
+
+            String name = (String) hit.getSource().get("title");
+            Object object = hit.getSource().get("location");
+            // 获取距离值，并保留两位小数点
+            BigDecimal geoDis = new BigDecimal((Double) hit.getSortValues()[0]);
+            Map<String, Object> hitMap = hit.getSource();
+            // 在创建MAPPING的时候，属性名的不可为geoDistance。
+            hitMap.put("geoDistance", geoDis.setScale(0, BigDecimal.ROUND_HALF_DOWN));
+            System.out.println(name + "的坐标：" + object + "他距离眼泪八叉 鼻涕拉瞎" + hit.getSource().get("geoDistance") + DistanceUnit.METERS.toString());
+        }
+    }
+
 }

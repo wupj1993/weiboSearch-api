@@ -18,6 +18,8 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilde
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author：WPJ587 2017/3/19 14:42.
  **/
@@ -51,5 +53,10 @@ public class WeiBoDataServiceImpl implements WeiBoDataService {
                 .withPageable(page)
                 .build();
         return elasticsearchTemplate.queryForPage(query, WeiBoData.class);
+    }
+
+    @Override
+    public List<WeiBoData> findNearbyPeople(Double latitude, Double longitude, String from, String to) {
+        return null;
     }
 }

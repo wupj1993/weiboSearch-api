@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 /**
  * @author：WPJ587 2017/3/19 14:41.
  **/
@@ -38,4 +40,16 @@ public interface WeiBoDataService {
      * @return
      */
     Page<WeiBoData> findByCity(String city, Pageable page);
+
+    /**
+     * 获取附近人的信息
+     *
+     * @param latitude  纬度
+     * @param longitude 经度
+     * @param from      距离从多少开始 eg: 1m 从一米开始
+     * @param to        距离到哪里结束 eg 1km 一千米结束
+     * @return
+     */
+    List<WeiBoData> findNearbyPeople(Double latitude, Double longitude, String from, String to);
+
 }
