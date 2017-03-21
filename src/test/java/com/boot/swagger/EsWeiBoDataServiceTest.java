@@ -7,6 +7,7 @@ package com.boot.swagger;
 import com.boot.swagger.constant.ElasticSearchConstant;
 import com.boot.swagger.entity.WeiBoData;
 import com.boot.swagger.service.WeiBoDataService;
+import com.boot.swagger.utils.BeanUtil;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.geo.GeoDistance;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -102,7 +104,7 @@ public class EsWeiBoDataServiceTest {
         Double lat = 31.093493731;
         Double lon = 121.43676335;
         SearchRequestBuilder srb = elasticsearchTemplate.getClient().prepareSearch(ElasticSearchConstant.WEI_BO_INDEX).setTypes(ElasticSearchConstant.WEI_BO_TYPE);
-        srb.setFrom(0).setSize(1000);//1000人
+        srb.setFrom(0).setSize(100);//1000人
         GeoDistanceRangeQueryBuilder geoDistanceRangeQueryBuilder = new GeoDistanceRangeQueryBuilder("location");
         geoDistanceRangeQueryBuilder.point(lat, lon)
                 .from("1m").to("1km").optimizeBbox("memory").geoDistance(GeoDistance.ARC);
@@ -118,16 +120,27 @@ public class EsWeiBoDataServiceTest {
         SearchHit[] searchHists = hits.getHits();
         Float usetime = searchResponse.getTookInMillis() / 1000f;
         System.out.println("附近的人(" + hits.getTotalHits() + "个)，耗时(" + usetime + "秒)：");
+        WeiBoData weiBoData;
         for (SearchHit hit : searchHists) {
-
+            weiBoData = new WeiBoData();
+            weiBoData.setTitle(String.valueOf(hit.getSource().get("title")));
+            weiBoData.setAddress(String.valueOf(hit.getSource().get("address")));
+            weiBoData.setCheckinNum(Integer.valueOf(String.valueOf(hit.getSource().get("checkinNum"))));
+            weiBoData.setPhotoNum(Integer.valueOf(String.valueOf(hit.getSource().get("photoNum"))));
+            weiBoData.setCategoryName(String.valueOf(hit.getSource().get("categoryName")));
+            weiBoData.setCity(String.valueOf(hit.getSource().get("city")));
             String name = (String) hit.getSource().get("title");
-            Object object = hit.getSource().get("location");
+            Map<String, Object> geo = (Map<String, Object>) hit.getSource().get("location");
+            System.out.println(geo);
+            GeoPoint geoPoint = new GeoPoint(Double.valueOf(geo.get("lat") + ""), Double.valueOf(geo.get("lon") + ""));
+            BeanUtil.transMap2Bean(geo, geoPoint);
+            weiBoData.setLocation(geoPoint);
             // 获取距离值，并保留两位小数点
             BigDecimal geoDis = new BigDecimal((Double) hit.getSortValues()[0]);
             Map<String, Object> hitMap = hit.getSource();
             // 在创建MAPPING的时候，属性名的不可为geoDistance。
             hitMap.put("geoDistance", geoDis.setScale(0, BigDecimal.ROUND_HALF_DOWN));
-            System.out.println(name + "的坐标：" + object + "他距离眼泪八叉 鼻涕拉瞎" + hit.getSource().get("geoDistance") + DistanceUnit.METERS.toString());
+            System.out.println(name + "的坐标：" + "" + "他距离眼泪八叉 鼻涕拉瞎" + hit.getSource().get("geoDistance") + DistanceUnit.METERS.toString());
         }
     }
 

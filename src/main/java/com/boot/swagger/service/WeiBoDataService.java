@@ -5,6 +5,7 @@
 package com.boot.swagger.service;
 
 import com.boot.swagger.entity.WeiBoData;
+import com.boot.swagger.model.WeiBoGeoParams;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,13 +44,9 @@ public interface WeiBoDataService {
 
     /**
      * 获取附近人的信息
-     *
-     * @param latitude  纬度
-     * @param longitude 经度
-     * @param from      距离从多少开始 eg: 1m 从一米开始
-     * @param to        距离到哪里结束 eg 1km 一千米结束
+     * @param weiBoGeoParams 查询的实体类
      * @return
      */
-    List<WeiBoData> findNearbyPeople(Double latitude, Double longitude, String from, String to);
+    List<WeiBoData> findNearbyPeople(WeiBoGeoParams weiBoGeoParams);
 
 }
