@@ -5,11 +5,11 @@
 package com.boot.swagger.controller;
 
 import com.boot.swagger.dto.BaseResult;
+import com.boot.swagger.model.WeiBoGeoParams;
 import com.boot.swagger.service.WeiBoDataService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/weibo")
 @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "Success", response = BaseResult.class),
-        @ApiResponse(code = 401, message = "Unauthorized"),
-        @ApiResponse(code = 403, message = "Forbidden"),
-        @ApiResponse(code = 404, message = "Not Found"),
-        @ApiResponse(code = 500, message = "Failure")})
+        @ApiResponse(code = 200, message = "成功", response = BaseResult.class),
+        @ApiResponse(code = 401, message = "未授权"),
+        @ApiResponse(code = 403, message = "您没有权限"),
+        @ApiResponse(code = 404, message = "找不到页面"),
+        @ApiResponse(code = 500, message = "失败")})
 @Api(basePath = "/weibo", value = "EsWeiBoData", description = "微博签到信息", produces = MediaType.APPLICATION_JSON_VALUE)
 public class WeiBoMsgController extends BaseController {
     @Autowired
@@ -51,8 +51,14 @@ public class WeiBoMsgController extends BaseController {
         return buildSuccessResultInfo(esWeiBoDataService.selectById(id));
     }
 
+
     @ResponseBody
-    public BaseResult getWeiboDataByPage(Pageable pageable) {
-        return null;
+    @PostMapping("/geo")
+    @ApiOperation(produces = MediaType.APPLICATION_JSON_VALUE, value = "获取附近签到的人", notes = "根据查询实体类参数获取附近签到人的信息", httpMethod = "POST", response = BaseResult.class)
+    public BaseResult getNearPeople(@ApiParam(required = true, name = "weiBoGeoParams", value = "查询的实体类")
+                                    @RequestBody WeiBoGeoParams weiBoGeoParams
+    ) {
+
+        return buildSuccessResultInfo(esWeiBoDataService.findNearbyPeople(weiBoGeoParams));
     }
 }

@@ -5,6 +5,7 @@
 package com.boot.swagger.service;
 
 import com.boot.swagger.entity.WeiBoData;
+import com.boot.swagger.model.NearPeopleModel;
 import com.boot.swagger.model.WeiBoGeoParams;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -47,6 +48,6 @@ public interface WeiBoDataService {
      * @param weiBoGeoParams 查询的实体类
      * @return
      */
-    List<WeiBoData> findNearbyPeople(WeiBoGeoParams weiBoGeoParams);
+    List<NearPeopleModel> findNearbyPeople(WeiBoGeoParams weiBoGeoParams);
 
 }

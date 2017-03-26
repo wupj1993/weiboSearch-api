@@ -6,6 +6,7 @@ package com.boot.swagger.service.impl;
 
 import com.boot.swagger.constant.ElasticSearchConstant;
 import com.boot.swagger.entity.WeiBoData;
+import com.boot.swagger.model.NearPeopleModel;
 import com.boot.swagger.model.WeiBoGeoParams;
 import com.boot.swagger.repository.WeiBoDataRepository;
 import com.boot.swagger.service.WeiBoDataService;
@@ -28,6 +29,7 @@ import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -70,13 +72,13 @@ public class WeiBoDataServiceImpl implements WeiBoDataService {
     }
 
     @Override
-    public List<WeiBoData> findNearbyPeople(WeiBoGeoParams weiBoGeoParams) {
-        List<WeiBoData> resultData = new ArrayList<>();
+    public List<NearPeopleModel> findNearbyPeople(WeiBoGeoParams weiBoGeoParams) {
+        List<NearPeopleModel> resultData = new ArrayList<>();
         SearchRequestBuilder srb = elasticsearchTemplate.getClient().prepareSearch(ElasticSearchConstant.WEI_BO_INDEX).setTypes(ElasticSearchConstant.WEI_BO_TYPE);
         srb.setFrom(weiBoGeoParams.getFromNum()).setSize(weiBoGeoParams.getSize());
-        GeoDistanceRangeQueryBuilder geoDistanceRangeQueryBuilder = new GeoDistanceRangeQueryBuilder("location");
+        GeoDistanceRangeQueryBuilder geoDistanceRangeQueryBuilder = new GeoDistanceRangeQueryBuilder(ElasticSearchConstant.LOCATION);
         geoDistanceRangeQueryBuilder.point(weiBoGeoParams.getLatitude(), weiBoGeoParams.getLongitude())
-                .from("1m").to("1km").optimizeBbox("memory").geoDistance(GeoDistance.ARC);
+                .from(weiBoGeoParams.getFrom()).to(weiBoGeoParams.getTo()).optimizeBbox("memory").geoDistance(GeoDistance.ARC);
         srb.setPostFilter(geoDistanceRangeQueryBuilder);
         // 获取距离多少公里 这个才是获取点与点之间的距离的
         GeoDistanceSortBuilder sort = SortBuilders.geoDistanceSort(ElasticSearchConstant.LOCATION);
@@ -87,23 +89,37 @@ public class WeiBoDataServiceImpl implements WeiBoDataService {
         SearchResponse searchResponse = srb.execute().actionGet();
         SearchHits hits = searchResponse.getHits();
         SearchHit[] searchHists = hits.getHits();
-        WeiBoData weiBoData = null;
+        NearPeopleModel weiBoData = null;
         for (SearchHit hit : searchHists) {
-            weiBoData = new WeiBoData();
-            weiBoData.setTitle(String.valueOf(hit.getSource().get("title")));
-            weiBoData.setAddress(String.valueOf(hit.getSource().get("address")));
-            weiBoData.setCheckinNum(Integer.valueOf(String.valueOf(hit.getSource().get("checkinNum"))));
-            weiBoData.setPhotoNum(Integer.valueOf(String.valueOf(hit.getSource().get("photoNum"))));
-            weiBoData.setCategoryName(String.valueOf(hit.getSource().get("categoryName")));
-            weiBoData.setCity(String.valueOf(hit.getSource().get("city")));
-            Object object = hit.getSource().get("location");
+            weiBoData = new NearPeopleModel();
+            weiBoData.setId(String.valueOf(hit.getSource().get("id") == null ? "" : hit.getSource().get("id")));
+            weiBoData.setTitle(String.valueOf(hit.getSource().get("title") == null ? "" : hit.getSource().get("title")));
+            weiBoData.setAddress(String.valueOf(hit.getSource().get("address") == null ? "" : hit.getSource().get("address")));
+            weiBoData.setCheckinNum(Integer.valueOf(String.valueOf(hit.getSource().get("checkinNum") == null ? "" : String.valueOf(hit.getSource().get("checkinNum")))));
+            weiBoData.setPhotoNum(Integer.valueOf(String.valueOf(hit.getSource().get("photoNum") == null ? "" : String.valueOf(hit.getSource().get("photoNum")))));
+            weiBoData.setCategoryName(String.valueOf(hit.getSource().get("categoryName") == null ? "" : hit.getSource().get("categoryName")));
+            weiBoData.setCity(String.valueOf(hit.getSource().get("city") == null ? "" : hit.getSource().get("city")));
+            Map<String, Object> geo = (Map<String, Object>) hit.getSource().get("location");
+            double lat;
+            double lon;
+            try {
+                lat = Double.parseDouble(geo.get("lat") == null ? "0" : String.valueOf(geo.get("lat")));
+                lon = Double.parseDouble(geo.get("lon") == null ? "0" : String.valueOf(geo.get("lon")));
+            } catch (Exception e) {
+                // 类型转换异常就全部设置为0
+                lat = 0D;
+                lon = 0D;
+            }
+            GeoPoint geoPoint = new GeoPoint(lat, lon);
+            weiBoData.setLocation(geoPoint);
             // 获取距离值，并保留两位小数点
-            BigDecimal geoDis = new BigDecimal((Double) hit.getSortValues()[0]);
-            Map<String, Object> hitMap = hit.getSource();
-            // 在创建MAPPING的时候，属性名的不可为geoDistance。
-            hitMap.put("geoDistance", geoDis.setScale(0, BigDecimal.ROUND_HALF_DOWN));
-            //  System.out.println(name + "的坐标：" + object + "他距离眼泪八叉 鼻涕拉瞎" + hit.getSource().get("geoDistance") + DistanceUnit.METERS.toString());
+            BigDecimal geoDis = null;
+            if (hit.getSortValues() != null) {
+                geoDis = new BigDecimal((Double) hit.getSortValues()[0]);
+                weiBoData.setDistance(geoDis.setScale(0, BigDecimal.ROUND_HALF_DOWN) + DistanceUnit.METERS.toString());
+            }
+            resultData.add(weiBoData);
         }
-        return null;
+        return resultData;
     }
 }
